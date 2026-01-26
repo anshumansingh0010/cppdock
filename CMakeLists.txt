@@ -64,11 +64,13 @@ add_library(cppdock_core
     src/security/Capabilities.cpp
     src/security/Seccomp.cpp
 )
+set(INCLUDE_DIR "${CMAKE_SOURCE_DIR}/include")
 
 target_include_directories(cppdock_core PUBLIC 
     include
     ${LIBCAP_INCLUDE_DIRS}
     ${LIBSECCOMP_INCLUDE_DIRS}
+    ${INCLUDE_DIR}
 )
 
 target_compile_definitions(cppdock_core PUBLIC _GNU_SOURCE)
