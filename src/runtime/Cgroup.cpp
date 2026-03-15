@@ -16,7 +16,7 @@ namespace cppdock::runtime {
       remove();
     }
     catch(const std::exception &e){
-      std::cerr<<"Error in cgroup desctructor for "<<name_<<"\n";
+      std::cerr<<"Error in cgroup destructor for "<<name_<<"\n";
     }
   }
   // create paths

@@ -64,7 +64,7 @@ add_library(cppdock_core
     src/security/Capabilities.cpp
     src/security/Seccomp.cpp
 )
-set(INCLUDE_DIR "${CMAKE_SOURCE_DIR}/include")
+set(INCLUDE_DIR "${CMAKE_SOURCE_DIR}/include", "${CMAKE_SOURCE_DIR}/config")
 
 target_include_directories(cppdock_core PUBLIC 
     include
