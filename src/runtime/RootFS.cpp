@@ -1,3 +1,4 @@
+#include <iostream>
 #include <runtime/RootFS.hpp>
 #include <sys/mount.h>
 #include <sys/stat.h>
@@ -38,9 +39,20 @@ void RootFS::prepare() {
 }
 
 void RootFS::mount_essentials() {
-  mount("proc", "/proc", "proc", 0, NULL);
-  mount("sysfs", "/sys", "sysfs", 0, NULL);
-  mount("tmpfs", "/dev", "tmpfs", MS_NOSUID | MS_STRICTATIME, "mode=755");
+  auto mount_req = [](const char* source, const char* target, const char* type, unsigned long flags, const void* data) {
+    if (mount(source, target, type, flags, data) == -1) {
+      throw std::system_error(errno, std::generic_category(),std::string("Failed to mount ") + target);
+    }
+  };
+
+  try {
+    mount_req("proc", "/proc", "proc", 0, NULL);
+    mount_req("sysfs", "/sys", "sysfs", 0, NULL);
+    mount_req("tmpfs", "/dev", "tmpfs", MS_NOSUID | MS_STRICTATIME, "mode=755");
+  } catch (const std::exception& e) {
+    std::cerr << "Critical Error during RootFS setup: " << e.what() << std::endl;
+    throw; 
+  }
 }
 
 } // namespace cppdock::runtime

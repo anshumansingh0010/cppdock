@@ -7,6 +7,7 @@
 
 namespace cppdock::runtime {
   struct ContainerConfigs{
+    int flags;
     std::string container_id;
     std::string rootfs_path;
     std::string command;

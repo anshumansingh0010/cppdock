@@ -33,6 +33,7 @@ namespace cppdock::runtime {
     }
   }
   void CGroup::set_resources(const CGroupResources &resources){
+    write_file("cgroup.subtree_control","cpu memory");
     if(!resources.cpu_max.empty()){
       write_file("cpu.max", resources.cpu_max);
     }
