@@ -2,5 +2,8 @@ build/
 bin/
 .cache/
 input.txt
+
+
+
 bin
 test/
