@@ -73,7 +73,10 @@ target_include_directories(cppdock_core PUBLIC
     ${INCLUDE_DIR}
 )
 
-target_compile_definitions(cppdock_core PUBLIC _GNU_SOURCE)
+target_compile_definitions(cppdock_core PUBLIC 
+    _GNU_SOURCE
+    PROJECT_ROOT_DIR="${CMAKE_SOURCE_DIR}"
+)
 target_link_libraries(cppdock_core PUBLIC 
     pthread
     ${LIBCAP_LIBRARIES}

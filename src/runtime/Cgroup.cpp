@@ -26,14 +26,20 @@ namespace cppdock::runtime {
         throw std::runtime_error("Failed to create cgroup root folder "+std::string(CGROUP_ROOT));
       }
     }
-    if(mkdir(path_.c_str(),0755)){
+
+    std::string root_control = std::string(CGROUP_ROOT) + "/cgroup.subtree_control";
+    std::ofstream root_file(root_control);
+    if(root_file.is_open()){
+      root_file << "+cpu +memory";
+    }
+
+    if(mkdir(path_.c_str(),0755)==-1){
       if(errno!=EEXIST){
         throw std::runtime_error("Failed to create cgroup "+path_);
       }
     }
   }
   void CGroup::set_resources(const CGroupResources &resources){
-    write_file("cgroup.subtree_control","cpu memory");
     if(!resources.cpu_max.empty()){
       write_file("cpu.max", resources.cpu_max);
     }
