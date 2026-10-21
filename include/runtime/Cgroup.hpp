@@ -12,7 +12,7 @@ namespace cppdock::runtime {
   };
 
   class CGroup{
-  public:  
+  public:
     static constexpr const char *CGROUP_ROOT="/sys/fs/cgroup/cppdock";
     explicit CGroup(std::string name);
     ~CGroup();

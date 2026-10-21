@@ -11,6 +11,7 @@ namespace cppdock::runtime {
   CGroup::CGroup(std::string name): name_(std::move(name)){
     path_=std::string(CGROUP_ROOT)+"/"+name_;
   }
+
   CGroup::~CGroup(){
     try{
       remove();
@@ -19,7 +20,7 @@ namespace cppdock::runtime {
       std::cerr<<"Error in cgroup destructor for "<<name_<<"\n";
     }
   }
-  // create paths
+  
   void CGroup::create(){
     if(mkdir(CGROUP_ROOT,0755)==-1){
       if(errno!=EEXIST){
@@ -39,6 +40,7 @@ namespace cppdock::runtime {
       }
     }
   }
+
   void CGroup::set_resources(const CGroupResources &resources){
     if(!resources.cpu_max.empty()){
       write_file("cpu.max", resources.cpu_max);
@@ -47,9 +49,11 @@ namespace cppdock::runtime {
       write_file("memory.max",resources.memory_max);
     }
   }
+
   void CGroup::add_process(pid_t pid){
     write_file("cgroup.procs",std::to_string(pid));
   }
+
   void CGroup::remove(){
     if(rmdir(path_.c_str())==-1){
       if(errno!=ENOENT){
@@ -57,15 +61,16 @@ namespace cppdock::runtime {
       }
     }
   }
+
   void CGroup::write_file(const std::string &filename, const std::string &value){
     std::string file_path=path_+"/"+filename;
     std::ofstream file(file_path);
+
     if(!file.is_open()){
       throw std::runtime_error("Failed to open cgroup file "+file_path);
     }
     if(!(file<<value)){
       throw std::runtime_error("Failed to write in cgroup file "+file_path);
     }
-
   }
 }

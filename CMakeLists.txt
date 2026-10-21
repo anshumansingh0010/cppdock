@@ -34,7 +34,7 @@ elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
 endif()
 
 # Linux-only guard
-if(NOT UNIX OR APPLE)
+if(NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
     message(FATAL_ERROR "cppdock supports Linux only")
 endif()
 

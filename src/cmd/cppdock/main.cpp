@@ -2,22 +2,22 @@
 #include <format>
 #include <iostream>
 #include <runtime/Container.hpp>
+
 using namespace cppdock::runtime;
 
 int main() {
   try {
-    const ContainerConfigs config{CLONE_NEWPID | CLONE_NEWUTS | CLONE_NEWNS |
-                                      CLONE_NEWNET | CLONE_NEWIPC |
-                                      CLONE_NEWCGROUP,
-                                  "jay",
-                                  std::format("{}/test", PROJECT_ROOT_DIR),
-                                  "mkdir",
-                                  {"mkdir", "-p", "test"},
-                                  {"50000 100000", "500M"}};
-    std::cout << std::format("{}/test", PROJECT_ROOT_DIR) << std::endl;
-    Container my_first = Container(config);
-    my_first.start();
-    my_first.wait();
+    const ContainerConfigs config=ContainerConfigsBuilder()
+          .add_flags(CLONE_NEWNET | CLONE_NEWIPC | CLONE_NEWCGROUP)
+          .with_id("new_id")
+          .with_rootfs(std::format("{}/rootfs", PROJECT_ROOT_DIR))
+          .with_command("sh")
+          .with_resources({"50000 100000", "500M"})
+          .build();
+    std::cout << std::format("{}/rootfs", PROJECT_ROOT_DIR) << std::endl;
+    Container new_con = Container(config);
+    new_con.start();
+    new_con.wait();
   } catch (const std::exception &e) {
     std::cerr << "Fatal container error: " << e.what() << std::endl;
     return 1;

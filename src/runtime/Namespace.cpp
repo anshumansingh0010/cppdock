@@ -23,16 +23,13 @@ static int child_main(void *arg) {
 }
 
 int Namespace::spawn(std::function<int()> child_func, void *stack_ptr) {
-  auto *args = new ChildArgs{std::move(child_func)};
+  ChildArgs args{std::move(child_func)};
 
-  pid_t pid = clone(child_main, stack_ptr, flags_ | SIGCHLD, args);
+  pid_t pid = clone(child_main, stack_ptr, flags_ | SIGCHLD, &args);
 
   if (pid == -1) {
-    delete args;
     throw std::system_error(errno, std::generic_category(), "Clone failed");
   }
-
-  delete args;
 
   return pid;
 }

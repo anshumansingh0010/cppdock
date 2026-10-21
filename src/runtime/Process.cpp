@@ -11,8 +11,7 @@ Process::Process(std::function<int()> target) : target_(std::move(target)) {
                 MAP_PRIVATE | MAP_ANONYMOUS | MAP_STACK, -1, 0);
 
   if (stack_ == MAP_FAILED) {
-    throw std::system_error(errno, std::generic_category(),
-                            "Stack allocation failed");
+    throw std::system_error(errno, std::generic_category(), "Stack allocation failed");
   }
 }
 
