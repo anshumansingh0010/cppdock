@@ -6,6 +6,7 @@
 #include <sched.h>
 #include <signal.h>
 #include<iostream>
+#include <unistd.h>
 
 
 namespace cppdock::runtime {
@@ -34,12 +35,16 @@ namespace cppdock::runtime {
     process_->start(ns);
 
     cgroup_.add_process(process_->pid());
+
+    process_->resume();
   }
 
   void Container::stop(){
     if(process_ && process_->pid()>0){
-      std::cout<<"Stopping container "<<configs_.container_id<<std::endl;
-      kill(process_->pid(),SIGKILL);
+      if(kill(process_->pid(),0)==0){
+        std::cout<<"Stopping container "<<configs_.container_id<<std::endl;
+        kill(process_->pid(),SIGKILL);
+      }
       process_->wait();
     }
   }
@@ -68,11 +73,22 @@ namespace cppdock::runtime {
     rootfs_.prepare();
     rootfs_.mount_essentials();
 
-    std::vector<const char *> c_args;
-    c_args.push_back(configs_.command.c_str());
+    if(sethostname(configs_.container_id.c_str(), configs_.container_id.length())==-1){
+      std::cerr<<"Warning: sethostname failed (errno " << errno << ")\n";
+    }
 
-    for(const auto &arg : configs_.args){
-      c_args.push_back(arg.c_str());
+    if(setsid()==-1){
+      std::cerr<<"Warning: setsid failed (errno "<<errno<<")\n";
+    }
+
+    std::vector<const char *> c_args;
+    if(configs_.args.empty()){
+      c_args.push_back(configs_.command.c_str());
+    }
+    else{
+      for(const auto &arg : configs_.args){
+        c_args.push_back(arg.c_str());
+      }
     }
     c_args.push_back(nullptr);
 

@@ -1,10 +1,14 @@
+#include <cerrno>
 #include <iostream>
 #include <runtime/RootFS.hpp>
+#include <sys/sysmacros.h>
 #include <sys/mount.h>
 #include <sys/stat.h>
 #include <sys/syscall.h>
+#include <sys/types.h>
 #include <system_error>
 #include <unistd.h>
+#include <vector>
 
 namespace cppdock::runtime {
 
@@ -45,6 +49,34 @@ void RootFS::mount_essentials() {
     mount_req("proc", "/proc", "proc", 0, NULL);
     mount_req("sysfs", "/sys", "sysfs", 0, NULL);
     mount_req("tmpfs", "/dev", "tmpfs", MS_NOSUID | MS_STRICTATIME, "mode=755");
+
+    struct DevNode {
+      const char* path;
+      int major;
+      int minor;
+      mode_t mode;
+    };
+    const std::vector<DevNode> devices={
+      {"/dev/null",1,3,0666},
+      {"/dev/zero",1,5,0666},
+      {"/dev/random",1,8,0666},
+      {"/dev/urandom",1,9,0666},
+      {"/dev/tty",5,0,0666},
+    };
+
+    for(const auto& dev:devices){
+      if(mknod(dev.path,S_IFCHR|dev.mode,makedev(dev.major,dev.minor))==-1){
+        if(errno!=EEXIST){
+          std::cerr<<"Warning: failed to mknod "<<dev.path<<" errno ( "<<errno<<" )\n";
+        }
+      }
+    }
+
+    symlink("/proc/self/fd", "/dev/fd");
+    symlink("/proc/self/fd/0", "/dev/stdin");
+    symlink("/proc/self/fd/1", "/dev/stdout");
+    symlink("/proc/self/fd/2", "/dev/stderr");
+    
   } catch (const std::exception& e) {
     std::cerr << "Critical Error during RootFS setup: " << e.what() << std::endl;
     throw; 
