@@ -46,9 +46,24 @@ void RootFS::mount_essentials() {
   };
 
   try {
+    mkdir("/proc", 0755);
     mount_req("proc", "/proc", "proc", 0, NULL);
+
+    mkdir("/sys", 0755);
     mount_req("sysfs", "/sys", "sysfs", 0, NULL);
+
+    mkdir("/dev", 0755);
     mount_req("tmpfs", "/dev", "tmpfs", MS_NOSUID | MS_STRICTATIME, "mode=755");
+
+    mkdir("/dev/pts", 0755);
+    mount_req("devpts", "/dev/pts", "devpts", 0, "newinstance,ptmxmode=0666");
+
+    mkdir("/dev/shm", 01777);
+    mount_req("tmpfs", "/dev/shm", "tmpfs", 0, NULL);
+
+    if (access("/dev/ptmx", F_OK) != 0) {
+      symlink("/dev/pts/ptmx", "/dev/ptmx");
+    }
 
     struct DevNode {
       const char* path;

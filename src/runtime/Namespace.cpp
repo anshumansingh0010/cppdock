@@ -1,4 +1,5 @@
 #include <runtime/Namespace.hpp>
+#include <cerrno>
 #include <sys/mount.h>
 #include <sys/wait.h>
 #include <system_error>
@@ -18,17 +19,20 @@ static int child_main(void *arg) {
   auto *args = static_cast<ChildArgs *>(arg);
 
   if (mount(NULL, "/", NULL, MS_REC | MS_PRIVATE, NULL) == -1) {
-    return -1;
+    _exit(1);
   }
 
-  uint64_t val=0;
-  if(read(args->sync_fd,&val,sizeof(val))==-1){
-    return -1;
+  uint64_t val = 0;
+  ssize_t n;
+  while ((n = read(args->sync_fd, &val, sizeof(val))) == -1 && errno == EINTR) {}
+  if (n != sizeof(val)) {
+    _exit(1);
   }
 
   close(args->sync_fd);
 
-  return args->func();
+  int ret = args->func();
+  _exit(ret);
 }
 
 int Namespace::spawn(std::function<int()> child_func, void *stack_ptr, int sync_fd) {

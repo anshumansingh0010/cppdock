@@ -12,7 +12,8 @@ int main() {
           .with_id("new_id")
           .with_rootfs(std::format("{}/rootfs", PROJECT_ROOT_DIR))
           .with_command("sh")
-          .with_resources({"50000 100000", "500M"})
+          // .with_args({"mkdir", "-p", "test"})
+          .with_resources({"50000 100000", "524288000"})
           .build();
     std::cout << std::format("{}/rootfs", PROJECT_ROOT_DIR) << std::endl;
     Container new_con = Container(config);

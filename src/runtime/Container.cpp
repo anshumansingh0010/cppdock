@@ -1,13 +1,16 @@
-#include <runtime/Process.hpp>
 #include <cerrno>
-#include<runtime/Container.hpp>
-#include<runtime/Namespace.hpp>
-#include<ContainerConfig.hpp>
-#include <sched.h>
+#include <iostream>
 #include <signal.h>
-#include<iostream>
+#include <sys/wait.h>
 #include <unistd.h>
+#include <ContainerConfig.hpp>
+#include <runtime/Container.hpp>
+#include <runtime/Namespace.hpp>
+#include <runtime/Process.hpp>
 
+#ifndef HOST_NAME_MAX
+#define HOST_NAME_MAX 64
+#endif
 
 namespace cppdock::runtime {
   
@@ -34,19 +37,29 @@ namespace cppdock::runtime {
     process_=std::make_unique<Process>(payload_fun);
     process_->start(ns);
 
-    cgroup_.add_process(process_->pid());
-
-    process_->resume();
+    try {
+      cgroup_.add_process(process_->pid());
+      process_->resume();
+    } catch (...) {
+      if (process_ && process_->pid() > 0) {
+        kill(process_->pid(), SIGKILL);
+        process_->wait();
+      }
+      throw;
+    }
   }
 
   void Container::stop(){
-    if(process_ && process_->pid()>0){
-      if(kill(process_->pid(),0)==0){
+    if(process_ && process_->pid() > 0){
+      int status = 0;
+      pid_t res = waitpid(process_->pid(), &status, WNOHANG);
+      if(res == 0){
         std::cout<<"Stopping container "<<configs_.container_id<<std::endl;
-        kill(process_->pid(),SIGKILL);
+        kill(process_->pid(), SIGKILL);
       }
       process_->wait();
     }
+    cgroup_.remove();
   }
 
   void Container::pause(){
@@ -73,29 +86,37 @@ namespace cppdock::runtime {
     rootfs_.prepare();
     rootfs_.mount_essentials();
 
-    if(sethostname(configs_.container_id.c_str(), configs_.container_id.length())==-1){
+    std::string hostname = configs_.container_id.substr(0, HOST_NAME_MAX);
+    if(sethostname(hostname.c_str(), hostname.length()) == -1){
       std::cerr<<"Warning: sethostname failed (errno " << errno << ")\n";
     }
 
-    if(setsid()==-1){
+    if(setsid() == -1 && errno != EPERM){
       std::cerr<<"Warning: setsid failed (errno "<<errno<<")\n";
     }
 
-    std::vector<const char *> c_args;
-    if(configs_.args.empty()){
-      c_args.push_back(configs_.command.c_str());
+    clearenv();
+    setenv("PATH", "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin", 1);
+    setenv("HOME", "/root", 1);
+    setenv("USER", "root", 1);
+    setenv("TERM", "xterm", 1);
+
+    std::vector<std::string> args = configs_.args;
+    if(args.empty()){
+      args.push_back(configs_.command);
     }
-    else{
-      for(const auto &arg : configs_.args){
-        c_args.push_back(arg.c_str());
-      }
+
+    std::vector<char *> c_args;
+    c_args.reserve(args.size() + 1);
+    for(auto &arg : args){
+      c_args.push_back(arg.data());
     }
     c_args.push_back(nullptr);
 
     std::cout<<"Executing process \n";
-    if(execvp(configs_.command.c_str(), const_cast<char**>(c_args.data()))==-1){
+    if(execvp(configs_.command.c_str(), c_args.data()) == -1){
       std::cerr<<"Failed to execute "<<configs_.command<<"\nExecvp errno ( "<<errno<<" )\n";
-      return -1;
+      return (errno == ENOENT) ? 127 : 126;
     }
     return 0;
   }

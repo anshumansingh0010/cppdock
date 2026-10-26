@@ -2,6 +2,7 @@
 #include <iostream>
 #include <runtime/Namespace.hpp>
 #include <runtime/Process.hpp>
+#include <signal.h>
 #include <sys/eventfd.h>
 #include <sys/mman.h>
 #include <sys/wait.h>
@@ -20,14 +21,21 @@ Process::Process(std::function<int()> target) : target_(std::move(target)) {
 
 Process::~Process() {
   if (pid_ > 0) {
-    int status;
-    waitpid(pid_, &status, WNOHANG);
+    int status = 0;
+    pid_t ret = waitpid(pid_, &status, WNOHANG);
+    if (ret == 0) {
+      kill(pid_, SIGKILL);
+      waitpid(pid_, nullptr, 0);
+    }
+    pid_ = -1;
   }
-  if(sync_fd_!=-1){
+  if (sync_fd_ != -1) {
     close(sync_fd_);
+    sync_fd_ = -1;
   }
   if (stack_) {
     munmap(stack_, STACK_SIZE);
+    stack_ = nullptr;
   }
 }
 
@@ -67,7 +75,10 @@ int Process::wait() {
   int status=0;
   pid_t current_pid=pid_;
 
-  if (waitpid(pid_, &status, 0) == -1) {
+  pid_t ret;
+  while ((ret = waitpid(pid_, &status, 0)) == -1 && errno == EINTR) {}
+
+  if (ret == -1) {
     if(errno==ECHILD){
       std::cout<<"Process "<<pid_<<" was reaped by kernel"<<std::endl;
       pid_=-1;
