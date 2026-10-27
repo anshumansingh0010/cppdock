@@ -25,7 +25,7 @@ CGroup::~CGroup() {
   try {
     remove();
   } catch (const std::exception &e) {
-    std::cerr << "Error in cgroup destructor for " << name_ << ": " << e.what()<< "\n";
+    std::cerr << "Error in cgroup destructor for " << name_ << ": " << e.what()<< std::endl;
   }
 }
 
@@ -90,7 +90,7 @@ void CGroup::remove() {
         std::this_thread::sleep_for(std::chrono::milliseconds(RETRY_DELAY_MS));
         continue;
       }
-      std::cerr << "CGroup::remove: EBUSY while removing cgroup " << path_ << " (processes may still be attached)\n";
+      std::cerr << "CGroup::remove: EBUSY while removing cgroup " << path_ << " (processes may still be attached)"<<std::endl;
       throw std::runtime_error("Failed to remove cgroup (EBUSY): " + path_);
     }
     throw std::runtime_error("Failed to remove cgroup " + path_ + ": " + std::strerror(errno));
@@ -104,7 +104,7 @@ void CGroup::write_file(const std::string &filename, const std::string &value) {
   if (!file.is_open()) {
     throw std::runtime_error("Failed to open cgroup file " + file_path);
   }
-  if (!(file << value)) {
+  if (!(file << value << "\n")) {
     throw std::runtime_error("Failed to write in cgroup file " + file_path);
   }
 }

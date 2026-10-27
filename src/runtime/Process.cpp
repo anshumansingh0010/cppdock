@@ -62,7 +62,10 @@ void Process::resume(){
   if(sync_fd_!=-1){
     uint64_t val=1;
     if(write(sync_fd_,&val,sizeof(val))==-1){
-      throw std::system_error(errno, std::generic_category(), "Failed to unblock child");
+      int err = errno;
+      close(sync_fd_);
+      sync_fd_=-1;
+      throw std::system_error(err, std::generic_category(), "Failed to unblock child");
     }
     close(sync_fd_);
     sync_fd_=-1;

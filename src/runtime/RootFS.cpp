@@ -21,7 +21,10 @@ void RootFS::prepare() {
   }
 
   std::string old_root = root_path_ + "/.old_root";
-  mkdir(old_root.c_str(), 0700);
+
+  if (mkdir(old_root.c_str(), 0700) == -1 && errno != EEXIST) {
+    throw std::system_error(errno, std::generic_category(), "mkdir old_root failed");
+  } 
 
   if (syscall(SYS_pivot_root, root_path_.c_str(), old_root.c_str()) == -1) {
     throw std::system_error(errno, std::generic_category(), "pivot_root failed");
@@ -59,7 +62,7 @@ void RootFS::mount_essentials() {
     mount_req("devpts", "/dev/pts", "devpts", 0, "newinstance,ptmxmode=0666");
 
     mkdir("/dev/shm", 01777);
-    mount_req("tmpfs", "/dev/shm", "tmpfs", 0, NULL);
+    mount_req("tmpfs", "/dev/shm", "tmpfs", 0, "mode=1777");
 
     if (access("/dev/ptmx", F_OK) != 0) {
       symlink("/dev/pts/ptmx", "/dev/ptmx");
@@ -82,7 +85,7 @@ void RootFS::mount_essentials() {
     for(const auto& dev:devices){
       if(mknod(dev.path,S_IFCHR|dev.mode,makedev(dev.major,dev.minor))==-1){
         if(errno!=EEXIST){
-          std::cerr<<"Warning: failed to mknod "<<dev.path<<" errno ( "<<errno<<" )\n";
+          std::cerr<<"Warning: failed to mknod "<<dev.path<<" errno ( "<<errno<<" )"<<std::endl;
         }
       }
     }
