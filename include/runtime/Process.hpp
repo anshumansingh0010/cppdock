@@ -21,7 +21,7 @@ public:
 private:
   std::function<int()> target_;
   pid_t pid_ = -1;
-  int sync_fd_=-1;
+  int sync_fd_ = -1;
   void *stack_ = nullptr;
 };
 

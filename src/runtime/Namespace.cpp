@@ -1,19 +1,15 @@
-#include <runtime/Namespace.hpp>
 #include <cerrno>
+#include <runtime/Namespace.hpp>
+#include <sys/eventfd.h>
 #include <sys/mount.h>
 #include <sys/wait.h>
 #include <system_error>
-#include<sys/eventfd.h>
 #include <unistd.h>
+#include <common/Logger.hpp>
 
 namespace cppdock::runtime {
 
 Namespace::Namespace(int flags) : flags_(flags) {}
-
-struct ChildArgs {
-  std::function<int()> func;
-  int sync_fd;
-};
 
 static int child_main(void *arg) {
   auto *args = static_cast<ChildArgs *>(arg);
@@ -24,19 +20,19 @@ static int child_main(void *arg) {
 
   uint64_t val = 0;
   ssize_t n;
-  while ((n = read(args->sync_fd, &val, sizeof(val))) == -1 && errno == EINTR) {}
+  while ((n = read(args->sync_fd, &val, sizeof(val))) == -1 && errno == EINTR) {
+  }
   if (n != sizeof(val)) {
     _exit(1);
   }
 
   close(args->sync_fd);
-
-  int ret = args->func();
-  _exit(ret);
+  _exit(args->func());
 }
 
-int Namespace::spawn(std::function<int()> child_func, void *stack_ptr, int sync_fd) {
-  ChildArgs args{std::move(child_func),sync_fd};
+int Namespace::spawn(std::function<int()> child_func, void *stack_ptr,
+                     int sync_fd) {
+  ChildArgs args{std::move(child_func), sync_fd};
 
   pid_t pid = clone(child_main, stack_ptr, flags_ | SIGCHLD, &args);
 

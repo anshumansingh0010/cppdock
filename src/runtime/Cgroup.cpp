@@ -1,15 +1,16 @@
-#include <unistd.h>
-#include <thread>
 #include <cerrno>
 #include <chrono>
 #include <cstring>
 #include <fstream>
 #include <iostream>
-#include <sys/stat.h>
-#include <sys/vfs.h>
-#include <stdexcept>
 #include <linux/magic.h>
 #include <runtime/Cgroup.hpp>
+#include <stdexcept>
+#include <sys/stat.h>
+#include <sys/vfs.h>
+#include <thread>
+#include <unistd.h>
+#include <common/Logger.hpp>
 
 #ifndef CGROUP2_SUPER_MAGIC
 #define CGROUP2_SUPER_MAGIC 0x63677270
@@ -25,7 +26,7 @@ CGroup::~CGroup() {
   try {
     remove();
   } catch (const std::exception &e) {
-    std::cerr << "Error in cgroup destructor for " << name_ << ": " << e.what()<< std::endl;
+    LOG_ERROR("Error in cgroup destructor for " , name_ , ": " , e.what());
   }
 }
 
@@ -33,9 +34,11 @@ void CGroup::create() {
   struct statfs fs_stat;
   if (statfs(CGROUP_MOUNT, &fs_stat) != 0 ||
       fs_stat.f_type != CGROUP2_SUPER_MAGIC) {
-    throw std::runtime_error("cgroup v2 unified hierarchy is not mounted at " + std::string(CGROUP_MOUNT));
+    throw std::runtime_error("cgroup v2 unified hierarchy is not mounted at " +
+                             std::string(CGROUP_MOUNT));
   }
-  std::string root_control =std::string(CGROUP_MOUNT) + "/cgroup.subtree_control";
+  std::string root_control =
+      std::string(CGROUP_MOUNT) + "/cgroup.subtree_control";
   std::ofstream root_file(root_control);
   if (root_file.is_open()) {
     root_file << "+cpu +memory";
@@ -43,7 +46,8 @@ void CGroup::create() {
 
   if (mkdir(CGROUP_ROOT, 0755) == -1) {
     if (errno != EEXIST) {
-      throw std::runtime_error("Failed to create cgroup root folder " + std::string(CGROUP_ROOT));
+      throw std::runtime_error("Failed to create cgroup root folder " +
+                               std::string(CGROUP_ROOT));
     }
   }
 
@@ -90,10 +94,11 @@ void CGroup::remove() {
         std::this_thread::sleep_for(std::chrono::milliseconds(RETRY_DELAY_MS));
         continue;
       }
-      std::cerr << "CGroup::remove: EBUSY while removing cgroup " << path_ << " (processes may still be attached)"<<std::endl;
+      LOG_ERROR("CGroup::remove: EBUSY while removing cgroup " , path_ , " (processes may still be attached)");
       throw std::runtime_error("Failed to remove cgroup (EBUSY): " + path_);
     }
-    throw std::runtime_error("Failed to remove cgroup " + path_ + ": " + std::strerror(errno));
+    throw std::runtime_error("Failed to remove cgroup " + path_ + ": " +
+                             std::strerror(errno));
   }
 }
 

@@ -1,7 +1,4 @@
+.*
 build/
-bin/
-.cache/
-input.txt
 rootfs/
-bin
-test/
+state/
